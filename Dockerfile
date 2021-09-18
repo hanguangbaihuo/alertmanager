@@ -1,14 +1,15 @@
+ARG ARCH="amd64"
+ARG OS="linux"
 FROM golang:alpine
 
 ADD . /sparrow
 WORKDIR /sparrow
 
 ENV GOPROXY "https://goproxy.cn,direct"
+ENV CGO_ENABLED=0
 RUN go mod vendor
 RUN go build --mod=vendor -o alertmanager /sparrow/cmd/alertmanager/main.go
 
-ARG ARCH="amd64"
-ARG OS="linux"
 FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
 
 COPY --from=0 /sparrow/alertmanager /bin/
