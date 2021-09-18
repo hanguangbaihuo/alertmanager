@@ -9,7 +9,7 @@ RUN go build --mod=vendor -o alertmanager /sparrow/cmd/alertmanager/main.go
 
 ARG ARCH="amd64"
 ARG OS="linux"
-FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
+FROM quay.io/prometheus/busybox-linux-amd64:latest
 
 COPY --from=0 /sparrow/alertmanager /bin/
 COPY --from=0 /sparrow/examples/ha/alertmanager.yml  /etc/alertmanager/alertmanager.yml
