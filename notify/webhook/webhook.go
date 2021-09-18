@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -84,19 +86,27 @@ func truncateAlerts(maxAlerts uint64, alerts []*types.Alert) ([]*types.Alert, ui
 
 // Notify implements the Notifier interface.
 func (n *Notifier) Notify(ctx context.Context, alerts ...*types.Alert) (bool, error) {
-	alerts, numTruncated := truncateAlerts(n.conf.MaxAlerts, alerts)
+	// alerts, numTruncated := truncateAlerts(n.conf.MaxAlerts, alerts)
+	alerts, _ = truncateAlerts(n.conf.MaxAlerts, alerts)
 	data := notify.GetTemplateData(ctx, n.tmpl, alerts, n.logger)
 
-	groupKey, err := notify.ExtractGroupKey(ctx)
-	if err != nil {
-		level.Error(n.logger).Log("err", err)
-	}
+	// groupKey, err := notify.ExtractGroupKey(ctx)
+	// if err != nil {
+	// 	level.Error(n.logger).Log("err", err)
+	// }
 
-	msg := &Message{
-		Version:         "4",
-		Data:            data,
-		GroupKey:        groupKey.String(),
-		TruncatedAlerts: numTruncated,
+	// msg := &Message{
+	// 	Version:         "4",
+	// 	Data:            data,
+	// 	GroupKey:        groupKey.String(),
+	// 	TruncatedAlerts: numTruncated,
+	// }
+	tmp := convertDataToFeishu(data)
+	msg := map[string]interface{}{
+		"msg_type": "text",
+		"content": map[string]string{
+			"text": tmp,
+		},
 	}
 
 	var buf bytes.Buffer
@@ -115,7 +125,30 @@ func (n *Notifier) Notify(ctx context.Context, alerts ...*types.Alert) (bool, er
 	if err != nil {
 		return true, err
 	}
+	// level.Info(n.logger).Log("webhook response status_code", resp.StatusCode)
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		level.Error(n.logger).Log("error", err)
+	}
+	// level.Info(n.logger).Log("webhook response body", string(body))
+
 	notify.Drain(resp)
 
 	return n.retrier.Check(resp.StatusCode, nil)
+}
+
+func convertDataToFeishu(data *template.Data) string {
+	var text string
+	if data.Status == "firing" {
+		text += "🔥"
+	} else {
+		text += "✅"
+	}
+	text += "\n"
+	for _, alert := range data.Alerts {
+		elems := alert.Annotations.Values()
+		temp := strings.Join(elems, ",")
+		text += temp + "\n"
+	}
+	return text
 }
