@@ -10,7 +10,8 @@ ENV CGO_ENABLED=0
 RUN go mod vendor
 RUN go build --mod=vendor -o alertmanager /sparrow/cmd/alertmanager/main.go
 
-FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
+# FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
+FROM busybox:latest
 
 COPY --from=0 /sparrow/alertmanager /bin/
 COPY --from=0 /sparrow/examples/ha/alertmanager.yml  /etc/alertmanager/alertmanager.yml
