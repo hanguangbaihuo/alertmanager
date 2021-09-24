@@ -126,7 +126,7 @@ func (n *Notifier) Notify(ctx context.Context, alerts ...*types.Alert) (bool, er
 		return true, err
 	}
 	level.Info(n.logger).Log("webhook response status_code", resp.StatusCode)
-	_, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		level.Error(n.logger).Log("error", err)
 	}
